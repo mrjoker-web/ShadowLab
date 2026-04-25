@@ -1,0 +1,312 @@
+# ============================================================
+#   Shadow Lab v1.0 — Vulnerable Practice Environment
+#   Author  : Mr Joker | Shadow Suite
+#   GitHub  : github.com/mrjoker-web
+#
+#   ⚠  AMBIENTE ISOLADO PARA FINS EDUCACIONAIS
+#   ⚠  NUNCA expor estas máquinas à internet
+#
+#   Uso: docker-compose up -d
+# ============================================================
+
+version: "3.8"
+
+networks:
+  shadow_lab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24
+
+# ════════════════════════════════════════════════════════════
+# 🟢 NÍVEL 1 — INICIANTE
+# ════════════════════════════════════════════════════════════
+
+services:
+
+  # ── WEB-01: SQL Injection básico ─────────────────────────
+  web_sqli_basic:
+    image: webpwnized/mutillidae:latest
+    container_name: shadow_web_sqli_basic
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.10
+    ports:
+      - "8010:80"
+    restart: unless-stopped
+    labels:
+      shadow.level: "1"
+      shadow.vector: "web"
+      shadow.vuln: "SQLi, XSS, CSRF, LFI"
+      shadow.name: "Mutillidae II"
+      shadow.desc: "App web OWASP com múltiplas vulns — perfeito para iniciantes"
+
+  # ── WEB-02: DVWA ─────────────────────────────────────────
+  web_dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: shadow_web_dvwa
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.11
+    ports:
+      - "8011:80"
+    environment:
+      - MYSQL_PASS=shadowlab
+    restart: unless-stopped
+    labels:
+      shadow.level: "1"
+      shadow.vector: "web"
+      shadow.vuln: "SQLi, XSS, CSRF, File Upload, Brute Force"
+      shadow.name: "DVWA"
+      shadow.desc: "Damn Vulnerable Web App — nível de dificuldade ajustável"
+
+  # ── NET-01: FTP anónimo + credenciais fracas ──────────────
+  net_ftp_basic:
+    image: stilliard/pure-ftpd:latest
+    container_name: shadow_net_ftp
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.20
+    ports:
+      - "8021:21"
+      - "30000-30009:30000-30009"
+    environment:
+      - PUBLICHOST=10.10.0.20
+      - FTP_USER_NAME=shadow
+      - FTP_USER_PASS=shadow123
+      - FTP_USER_HOME=/home/shadow
+      - ADDED_FLAGS=--allow-anonymous
+    restart: unless-stopped
+    labels:
+      shadow.level: "1"
+      shadow.vector: "network"
+      shadow.vuln: "Anonymous FTP, Weak credentials, Banner disclosure"
+      shadow.name: "FTP Vulnerable"
+      shadow.desc: "FTP com acesso anónimo e credenciais fracas para praticar ShadowBanner"
+
+  # ── NET-02: SSH com credenciais fracas ────────────────────
+  net_ssh_basic:
+    image: rastasheep/ubuntu-sshd:18.04
+    container_name: shadow_net_ssh
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.21
+    ports:
+      - "8022:22"
+    restart: unless-stopped
+    labels:
+      shadow.level: "1"
+      shadow.vector: "network"
+      shadow.vuln: "Weak SSH credentials, Banner grabbing"
+      shadow.name: "SSH Weak Creds"
+      shadow.desc: "SSH com user:root pass:root — praticar banner grabbing e brute force"
+
+# ════════════════════════════════════════════════════════════
+# 🟡 NÍVEL 2 — INTERMÉDIO
+# ════════════════════════════════════════════════════════════
+
+  # ── WEB-03: OWASP Juice Shop ─────────────────────────────
+  web_juiceshop:
+    image: bkimminich/juice-shop:latest
+    container_name: shadow_web_juiceshop
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.30
+    ports:
+      - "8030:3000"
+    restart: unless-stopped
+    labels:
+      shadow.level: "2"
+      shadow.vector: "web"
+      shadow.vuln: "XSS, SQLi, IDOR, JWT, SSRF, XXE, Broken Auth"
+      shadow.name: "OWASP Juice Shop"
+      shadow.desc: "100+ desafios OWASP — nível intermédio a avançado"
+
+  # ── WEB-04: WebGoat ──────────────────────────────────────
+  web_webgoat:
+    image: webgoat/webgoat:latest
+    container_name: shadow_web_webgoat
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.31
+    ports:
+      - "8031:8080"
+      - "8032:9090"
+    restart: unless-stopped
+    labels:
+      shadow.level: "2"
+      shadow.vector: "web"
+      shadow.vuln: "A01-A10 OWASP Top 10, Path Traversal, XXE, SSRF"
+      shadow.name: "WebGoat"
+      shadow.desc: "Plataforma de aprendizagem OWASP com lições interactivas"
+
+  # ── NET-03: Redis sem autenticação ────────────────────────
+  net_redis_noauth:
+    image: redis:6.0
+    container_name: shadow_net_redis
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.40
+    ports:
+      - "8379:6379"
+    command: redis-server --protected-mode no
+    restart: unless-stopped
+    labels:
+      shadow.level: "2"
+      shadow.vector: "network"
+      shadow.vuln: "Redis unauthenticated, RCE via config set, Data exposure"
+      shadow.name: "Redis No Auth"
+      shadow.desc: "Redis exposto sem password — praticar ShadowScanner + exploração manual"
+
+  # ── NET-04: SMB vulnerável ────────────────────────────────
+  net_smb:
+    image: ghcr.io/servercontainers/samba:latest
+    container_name: shadow_net_smb
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.41
+    ports:
+      - "8445:445"
+      - "8139:139"
+    environment:
+      - SAMBA_CONF_LOG_LEVEL=3
+      - ACCOUNT_shadow=shadow123
+      - UID_shadow=1000
+      - SAMBA_VOLUME_CONFIG_share=path=/share;valid users=shadow;guest ok=yes;read only=no;browseable=yes
+    volumes:
+      - shadow_smb_data:/share
+    restart: unless-stopped
+    labels:
+      shadow.level: "2"
+      shadow.vector: "network"
+      shadow.vuln: "SMB misconfig, Guest access, Null session"
+      shadow.name: "SMB Misconfigured"
+      shadow.desc: "SMB com acesso guest e share público — praticar enumeração SMB"
+
+  # ── NET-05: MongoDB sem autenticação ─────────────────────
+  net_mongodb_noauth:
+    image: mongo:4.4
+    container_name: shadow_net_mongodb
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.42
+    ports:
+      - "27117:27017"
+    restart: unless-stopped
+    labels:
+      shadow.level: "2"
+      shadow.vector: "network"
+      shadow.vuln: "MongoDB unauthenticated, Data exposure, NoSQLi"
+      shadow.name: "MongoDB No Auth"
+      shadow.desc: "MongoDB exposto sem auth — praticar ShadowScanner e enumeração de DBs"
+
+# ════════════════════════════════════════════════════════════
+# 🔴 NÍVEL 3 — AVANÇADO
+# ════════════════════════════════════════════════════════════
+
+  # ── WEB-05: API REST vulnerável ───────────────────────────
+  web_api_vulnerable:
+    build:
+      context: ./labs/vulnerable-api
+      dockerfile: Dockerfile
+    container_name: shadow_web_api
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.50
+    ports:
+      - "8050:5000"
+    restart: unless-stopped
+    labels:
+      shadow.level: "3"
+      shadow.vector: "web"
+      shadow.vuln: "IDOR, JWT None Algorithm, Mass Assignment, BOLA, SSRF"
+      shadow.name: "Shadow Vulnerable API"
+      shadow.desc: "REST API custom com vulns reais — OWASP API Top 10"
+
+  # ── WEB-06: Cadeia de vulns (LFI → RCE) ──────────────────
+  web_lfi_rce:
+    build:
+      context: ./labs/lfi-to-rce
+      dockerfile: Dockerfile
+    container_name: shadow_web_lfi_rce
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.51
+    ports:
+      - "8051:80"
+    restart: unless-stopped
+    labels:
+      shadow.level: "3"
+      shadow.vector: "web"
+      shadow.vuln: "LFI, Log Poisoning, RCE, Path Traversal"
+      shadow.name: "LFI to RCE Chain"
+      shadow.desc: "Encadeamento LFI → Log Poisoning → RCE — cenário realista"
+
+  # ── NET-06: Rede multi-serviço para pivoting ──────────────
+  net_pivot_target:
+    build:
+      context: ./labs/pivot-target
+      dockerfile: Dockerfile
+    container_name: shadow_net_pivot
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.60
+    ports:
+      - "8060:22"
+      - "8061:80"
+      - "8062:3306"
+    restart: unless-stopped
+    labels:
+      shadow.level: "3"
+      shadow.vector: "network"
+      shadow.vuln: "SSH tunneling, Port forwarding, Service chaining"
+      shadow.name: "Pivot Target"
+      shadow.desc: "Máquina com múltiplos serviços para praticar pivoting e encadeamento"
+
+  # ── ANDROID-01: API backend de app Android vulnerável ────
+  android_api_backend:
+    build:
+      context: ./labs/android-backend
+      dockerfile: Dockerfile
+    container_name: shadow_android_api
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.70
+    ports:
+      - "8070:8080"
+    restart: unless-stopped
+    labels:
+      shadow.level: "2-3"
+      shadow.vector: "android"
+      shadow.vuln: "Insecure API, Hardcoded secrets, Broken auth, Sensitive data exposure"
+      shadow.name: "Android Backend API"
+      shadow.desc: "Backend de app Android com vulns reais — para usar com ShadowDroid"
+
+# ════════════════════════════════════════════════════════════
+# 🖥️  SHADOW DASHBOARD — Interface do Lab
+# ════════════════════════════════════════════════════════════
+
+  shadow_dashboard:
+    build:
+      context: ./labs/dashboard
+      dockerfile: Dockerfile
+    container_name: shadow_dashboard
+    networks:
+      shadow_lab:
+        ipv4_address: 10.10.0.100
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    labels:
+      shadow.name: "Shadow Dashboard"
+      shadow.desc: "Interface web do lab — lista máquinas, status, hints e progresso"
+
+# ════════════════════════════════════════════════════════════
+# VOLUMES
+# ════════════════════════════════════════════════════════════
+
+volumes:
+  shadow_smb_data:
+    driver: local
